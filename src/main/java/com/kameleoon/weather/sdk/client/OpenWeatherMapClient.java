@@ -47,6 +47,24 @@ public class OpenWeatherMapClient {
     }
 
     /**
+     * Создает клиент для работы с OpenWeatherMap API (используется для тестов)
+     *
+     * @param config     конфигурация SDK с настройками подключения
+     * @param httpClient HTTP-клиент
+     */
+    public OpenWeatherMapClient(SdkConfig config, HttpClient httpClient) {
+        if (config == null) {
+            throw new IllegalArgumentException("SDK configuration cannot be null");
+        }
+
+        this.config = config;
+        this.objectMapper = new ObjectMapper();
+        this.httpClient = httpClient;
+
+        log.debug("OpenWeatherMap client initialized with timeout: {} seconds", config.getTimeoutSeconds());
+    }
+
+    /**
      * Получает данные о погоде для указанного города.
      * Выполняет запрос к Current Weather API 2.5 и преобразует ответ
      * в клиентскую модель WeatherData.

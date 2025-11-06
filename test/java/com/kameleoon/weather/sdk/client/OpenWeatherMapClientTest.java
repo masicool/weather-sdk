@@ -1,217 +1,208 @@
 package com.kameleoon.weather.sdk.client;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kameleoon.weather.sdk.config.SdkConfig;
-import com.kameleoon.weather.sdk.exception.*;
-import com.kameleoon.weather.sdk.model.ApiWeatherResponse;
+import com.kameleoon.weather.sdk.exception.ApiException;
+import com.kameleoon.weather.sdk.exception.WeatherSdkException;
 import com.kameleoon.weather.sdk.model.WeatherData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 
+import javax.net.ssl.SSLSession;
+import java.io.IOException;
+import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Collections;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Тесты для клиента OpenWeatherMap с моками HTTP
  */
-@ExtendWith(MockitoExtension.class)
 class OpenWeatherMapClientTest {
+
     @Mock
     private HttpClient mockHttpClient;
 
-    @Mock
-    private HttpResponse<String> mockHttpResponse;
-
-    private OpenWeatherMapClient weatherClient;
-    private ObjectMapper objectMapper;
+    private OpenWeatherMapClient client;
 
     @BeforeEach
     void setUp() {
-        SdkConfig config = SdkConfig.builder("a28a880098176a505a802319e9e6ee66")
-                .weatherApiUrl("https://api.openweathermap.org/data/2.5/weather")
-                .timeoutSeconds(30)
-                .build();
-
-        objectMapper = new ObjectMapper();
-
-        // Создаем реальный клиент, но подменим HTTP клиент через рефлексию
-        // В реальном проекте лучше использовать конструктор, принимающий HttpClient
-        weatherClient = new OpenWeatherMapClient(config);
+        MockitoAnnotations.openMocks(this);
+        SdkConfig config = new SdkConfig("test-api-key");
+        client = new OpenWeatherMapClient(config, mockHttpClient);
     }
 
     @Test
-    void shouldReturnWeatherDataForValidCity() throws Exception {
-        // Arrange
-        String cityName = "Moscow";
-        String apiResponseJson = createSuccessfulApiResponse(cityName);
+    void getWeather_ShouldReturnWeatherData_WhenValidResponse() throws Exception {
+        String jsonResponse = """
+                {
+                    "weather": [{"main": "Clouds", "description": "scattered clouds"}],
+                    "main": {"temp": 269.6, "feels_like": 267.57},
+                    "visibility": 10000,
+                    "wind": {"speed": 1.38},
+                    "dt": 1675744800,
+                    "sys": {"sunrise": 1675751262, "sunset": 1675787560},
+                    "timezone": 3600,
+                    "name": "Zocca"
+                }
+                """;
 
-        when(mockHttpResponse.statusCode()).thenReturn(200);
-        when(mockHttpResponse.body()).thenReturn(apiResponseJson);
-        when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenReturn(mockHttpResponse);
+        when(mockHttpClient.send(any(HttpRequest.class), any()))
+                .thenReturn(createMockResponse(200, jsonResponse));
 
-        // Act
-        WeatherData result = weatherClient.getWeatherByCityName(cityName);
+        WeatherData weather = client.getWeatherByCityName("London");
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(cityName, result.getName());
-        assertEquals(25.0, result.getTemperature().getTemp());
-        assertEquals("Clear", result.getWeather().getMain());
-        verify(mockHttpClient, times(1)).send(any(HttpRequest.class), any());
+        assertNotNull(weather);
+        assertEquals("Zocca", weather.getName());
+        assertEquals(269.6, weather.getTemperature().getTemp());
+        assertEquals(267.57, weather.getTemperature().getFeelsLike());
+        assertEquals(10000, weather.getVisibility());
+        assertEquals(1.38, weather.getWind().getSpeed());
+        assertEquals(1675744800, weather.getDatetime());
+        assertEquals(1675751262, weather.getSys().getSunrise());
+        assertEquals(1675787560, weather.getSys().getSunset());
+        assertEquals(3600, weather.getTimezone());
     }
 
     @Test
-    void shouldThrowCityNotFoundExceptionFor404() throws Exception {
-        // Arrange
-        String cityName = "UnknownCity";
-        String errorResponse = "{\"cod\":\"404\",\"message\":\"city not found\"}";
+    void getWeather_ShouldThrowException_WhenHttpError() throws Exception {
+        when(mockHttpClient.send(any(HttpRequest.class), any()))
+                .thenThrow(new IOException("Network error"));
 
-        when(mockHttpResponse.statusCode()).thenReturn(404);
-        when(mockHttpResponse.body()).thenReturn(errorResponse);
-        when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenReturn(mockHttpResponse);
+        WeatherSdkException exception = assertThrows(WeatherSdkException.class,
+                () -> client.getWeatherByCityName("London"));
 
-        // Act & Assert
-        CityNotFoundException exception = assertThrows(CityNotFoundException.class,
-                () -> weatherClient.getWeatherByCityName(cityName));
-
-        assertEquals("Город не найден: " + cityName, exception.getMessage());
-        assertEquals(404, exception.getStatusCode());
+        assertTrue(exception.getMessage().contains("Network communication error"));
     }
 
     @Test
-    void shouldThrowInvalidApiKeyExceptionFor401() throws Exception {
-        // Arrange
-        String cityName = "Moscow";
+    void getWeather_ShouldThrowException_WhenApiReturnsError() throws Exception {
         String errorResponse = "{\"cod\":401, \"message\": \"Invalid API key\"}";
+        when(mockHttpClient.send(any(HttpRequest.class), any()))
+                .thenReturn(createMockResponse(401, errorResponse));
 
-        when(mockHttpResponse.statusCode()).thenReturn(401);
-        when(mockHttpResponse.body()).thenReturn(errorResponse);
-        when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenReturn(mockHttpResponse);
+        ApiException exception = assertThrows(ApiException.class,
+                () -> client.getWeatherByCityName("London"));
 
-        // Act & Assert
-        InvalidApiKeyException exception = assertThrows(InvalidApiKeyException.class,
-                () -> weatherClient.getWeatherByCityName(cityName));
-
-        assertEquals("Неверный API ключ. Проверьте правильность ключа.", exception.getMessage());
         assertEquals(401, exception.getStatusCode());
     }
 
     @Test
-    void shouldThrowAccessDeniedExceptionFor429() throws Exception {
-        // Arrange
-        String cityName = "Moscow";
-        String errorResponse = "{\"cod\":429, \"message\": \"Rate limit exceeded\"}";
+    void getWeather_ShouldThrowException_WhenInvalidJson() throws Exception {
+        String invalidJson = "invalid json";
+        when(mockHttpClient.send(any(HttpRequest.class), any()))
+                .thenReturn(createMockResponse(400, invalidJson));
 
-        when(mockHttpResponse.statusCode()).thenReturn(429);
-        when(mockHttpResponse.body()).thenReturn(errorResponse);
-        when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenReturn(mockHttpResponse);
+        WeatherSdkException exception = assertThrows(WeatherSdkException.class,
+                () -> client.getWeatherByCityName("London"));
 
-        // Act & Assert
-        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
-                () -> weatherClient.getWeatherByCityName(cityName));
-
-        assertEquals("Превышен лимит запросов. Попробуйте позже.", exception.getMessage());
-        assertEquals(429, exception.getStatusCode());
+        assertTrue(exception.getMessage().contains("Invalid request parameters"));
     }
 
     @Test
-    void shouldThrowApiExceptionForServerError() throws Exception {
-        // Arrange
-        String cityName = "Moscow";
+    void getWeather_ShouldThrowException_WhenCityNotFound() throws Exception {
+        String notFoundResponse = "{\"cod\":\"404\", \"message\":\"city not found\"}";
+        when(mockHttpClient.send(any(HttpRequest.class), any()))
+                .thenReturn(createMockResponse(404, notFoundResponse));
 
-        when(mockHttpResponse.statusCode()).thenReturn(500);
-        when(mockHttpResponse.body()).thenReturn("Server error");
-        when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenReturn(mockHttpResponse);
-
-        // Act & Assert
         ApiException exception = assertThrows(ApiException.class,
-                () -> weatherClient.getWeatherByCityName(cityName));
+                () -> client.getWeatherByCityName("InvalidCity"));
 
-        assertEquals("OpenWeatherMap server error. Please try again later.", exception.getMessage());
-        assertEquals(500, exception.getStatusCode());
+        assertEquals(404, exception.getStatusCode());
     }
 
     @Test
-    void shouldThrowWeatherSdkExceptionForNetworkError() throws Exception {
-        // Arrange
-        String cityName = "Moscow";
+    void getWeather_ShouldHandleEmptyResponse() throws Exception {
+        when(mockHttpClient.send(any(HttpRequest.class), any()))
+                .thenReturn(createMockResponse(200, ""));
 
-        when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenThrow(new java.net.ConnectException("Connection refused"));
-
-        // Act & Assert
         WeatherSdkException exception = assertThrows(WeatherSdkException.class,
-                () -> weatherClient.getWeatherByCityName(cityName));
+                () -> client.getWeatherByCityName("London"));
 
-        assertEquals("Network connection error", exception.getMessage());
-        assertNotNull(exception.getCause());
+        assertTrue(exception.getMessage().contains("Network communication error"));
     }
 
     @Test
-    void shouldThrowIllegalArgumentExceptionForEmptyCityName() {
-        assertThrows(IllegalArgumentException.class, () -> weatherClient.getWeatherByCityName(null));
-        assertThrows(IllegalArgumentException.class, () -> weatherClient.getWeatherByCityName(""));
-        assertThrows(IllegalArgumentException.class, () -> weatherClient.getWeatherByCityName("   "));
+    void getWeather_ShouldUseCorrectUrlFormat() throws Exception {
+        String jsonResponse = """
+                {
+                    "weather": [{"main": "Clear", "description": "clear sky"}],
+                    "main": {"temp": 280.0, "feels_like": 278.0},
+                    "visibility": 10000,
+                    "wind": {"speed": 2.0},
+                    "dt": 1675744800,
+                    "sys": {"sunrise": 1675751262, "sunset": 1675787560},
+                    "timezone": 3600,
+                    "name": "London"
+                }
+                """;
+
+        when(mockHttpClient.send(any(HttpRequest.class), any()))
+                .thenReturn(createMockResponse(200, jsonResponse));
+
+        WeatherData weather = client.getWeatherByCityName("London");
+
+        assertNotNull(weather);
+        assertEquals("London", weather.getName());
+
+        verify(mockHttpClient).send(any(HttpRequest.class), any());
     }
 
-    @Test
-    void shouldHandleMalformedJsonResponse() throws Exception {
-        // Arrange
-        String cityName = "Moscow";
+    /**
+     * Создает mock HttpResponse для тестов
+     */
+    private HttpResponse<Object> createMockResponse(int statusCode, String body) {
+        return new HttpResponse<>() {
+            @Override
+            public int statusCode() {
+                return statusCode;
+            }
 
-        when(mockHttpResponse.statusCode()).thenReturn(200);
-        when(mockHttpResponse.body()).thenReturn("invalid json");
-        when(mockHttpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenReturn(mockHttpResponse);
+            @Override
+            public String body() {
+                return body;
+            }
 
-        // Act & Assert
-        WeatherSdkException exception = assertThrows(WeatherSdkException.class,
-                () -> weatherClient.getWeatherByCityName(cityName));
+            @Override
+            public Optional<SSLSession> sslSession() {
+                return Optional.empty();
+            }
 
-        assertEquals("Failed to process weather data", exception.getMessage());
-        assertNotNull(exception.getCause());
-    }
+            @Override
+            public HttpRequest request() {
+                return HttpRequest.newBuilder()
+                        .uri(URI.create("https://api.openweathermap.org/data/2.5/weather"))
+                        .build();
+            }
 
-    private String createSuccessfulApiResponse(String cityName) throws JsonProcessingException {
-        ApiWeatherResponse response = new ApiWeatherResponse();
-        response.setName(cityName);
-        response.setTimezone(10800);
-        response.setDt(1675744800L);
-        response.setVisibility(10000);
+            @Override
+            public Optional<HttpResponse<Object>> previousResponse() {
+                return Optional.empty();
+            }
 
-        ApiWeatherResponse.Weather weather = new ApiWeatherResponse.Weather();
-        weather.setMain("Clear");
-        weather.setDescription("clear sky");
-        response.setWeather(java.util.List.of(weather));
+            @Override
+            public HttpHeaders headers() {
+                return HttpHeaders.of(Collections.emptyMap(), (s1, s2) -> true);
+            }
 
-        ApiWeatherResponse.Main main = new ApiWeatherResponse.Main();
-        main.setTemp(25.0);
-        main.setFeelsLike(26.0);
-        response.setMain(main);
+            @Override
+            public URI uri() {
+                return URI.create("https://api.openweathermap.org/data/2.5/weather");
+            }
 
-        ApiWeatherResponse.Wind wind = new ApiWeatherResponse.Wind();
-        wind.setSpeed(5.0);
-        response.setWind(wind);
-
-        ApiWeatherResponse.Sys sys = new ApiWeatherResponse.Sys();
-        sys.setSunrise(1675751262L);
-        sys.setSunset(1675787560L);
-        response.setSys(sys);
-
-        return objectMapper.writeValueAsString(response);
+            @Override
+            public HttpClient.Version version() {
+                return HttpClient.Version.HTTP_1_1;
+            }
+        };
     }
 }

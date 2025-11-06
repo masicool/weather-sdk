@@ -44,27 +44,23 @@ class PollingWeatherServiceTest {
 
     @Test
     void shouldReturnCachedDataForSameCity() throws WeatherSdkException {
-        // Arrange
         String cityName = "Moscow";
         WeatherData expectedData = createTestWeatherData(cityName);
 
         when(mockWeatherClient.getWeatherByCityName(cityName))
                 .thenReturn(expectedData);
 
-        // Act
         WeatherData result1 = pollingService.getWeather(cityName);
         WeatherData result2 = pollingService.getWeather(cityName);
 
-        // Assert
         assertEquals(expectedData, result1);
         assertEquals(expectedData, result2);
-        // Клиент должен быть вызван только один раз (второй раз из кеша)
+        // клиент должен быть вызван только один раз (второй раз из кеша)
         verify(mockWeatherClient, times(1)).getWeatherByCityName(cityName);
     }
 
     @Test
     void shouldHandleMultipleCitiesWithinLimit() throws WeatherSdkException {
-        // Arrange
         WeatherData moscowData = createTestWeatherData("Moscow");
         WeatherData londonData = createTestWeatherData("London");
         WeatherData parisData = createTestWeatherData("Paris");
