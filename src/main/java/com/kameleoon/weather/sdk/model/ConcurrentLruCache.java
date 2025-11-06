@@ -8,7 +8,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Потокобезопасный LRU кеш на основе ConcurrentHashMap
+ * Потокобезопасный LRU кеш на основе ConcurrentHashMap.
  * Гарантирует корректную работу в многопоточной среде.
  * Автоматически удаляет наименее используемые элементы при превышении лимита.
  */

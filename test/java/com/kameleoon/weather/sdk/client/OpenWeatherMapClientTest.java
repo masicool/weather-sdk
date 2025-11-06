@@ -32,12 +32,11 @@ class OpenWeatherMapClientTest {
     private HttpResponse<String> mockHttpResponse;
 
     private OpenWeatherMapClient weatherClient;
-    private SdkConfig config;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        config = SdkConfig.builder("a28a880098176a505a802319e9e6ee66")
+        SdkConfig config = SdkConfig.builder("a28a880098176a505a802319e9e6ee66")
                 .weatherApiUrl("https://api.openweathermap.org/data/2.5/weather")
                 .timeoutSeconds(30)
                 .build();

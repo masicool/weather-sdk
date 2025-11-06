@@ -5,6 +5,7 @@ import com.kameleoon.weather.sdk.config.SdkConfig;
 import com.kameleoon.weather.sdk.exception.*;
 import com.kameleoon.weather.sdk.model.ApiWeatherResponse;
 import com.kameleoon.weather.sdk.model.WeatherData;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.URI;
@@ -20,6 +21,7 @@ import java.time.Duration;
  */
 @Slf4j
 public class OpenWeatherMapClient {
+    @Getter
     private final SdkConfig config;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
@@ -45,7 +47,7 @@ public class OpenWeatherMapClient {
     }
 
     /**
-     * Получает данные о погоде для указанного города
+     * Получает данные о погоде для указанного города.
      * Выполняет запрос к Current Weather API 2.5 и преобразует ответ
      * в клиентскую модель WeatherData.
      *
@@ -81,7 +83,7 @@ public class OpenWeatherMapClient {
             log.info("Weather data successfully retrieved for city: {}", cityName);
 
             // преобразуем API модель в клиентскую модель
-            return transformToWeatherData(apiResponse);
+            return mapToWeatherData(apiResponse);
 
         } catch (WeatherSdkException e) {
             // перебрасываем наши кастомные исключения
@@ -111,7 +113,7 @@ public class OpenWeatherMapClient {
      * @return данные в формате клиентской модели
      * @throws WeatherSdkException если данные не могут быть преобразованы
      */
-    private WeatherData transformToWeatherData(ApiWeatherResponse apiResponse) throws WeatherSdkException {
+    private WeatherData mapToWeatherData(ApiWeatherResponse apiResponse) throws WeatherSdkException {
         try {
             // извлекаем первый элемент weather (обычно он один)
             ApiWeatherResponse.Weather apiWeather = apiResponse.getWeather() != null &&

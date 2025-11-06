@@ -1,7 +1,6 @@
 package com.kameleoon.weather.sdk.service;
 
 import com.kameleoon.weather.sdk.client.OpenWeatherMapClient;
-import com.kameleoon.weather.sdk.config.SdkConfig;
 import com.kameleoon.weather.sdk.exception.WeatherSdkException;
 import com.kameleoon.weather.sdk.model.ConcurrentLruCache;
 import com.kameleoon.weather.sdk.model.WeatherData;
@@ -28,17 +27,12 @@ public class PollingWeatherService implements WeatherService {
     /**
      * Создает сервис polling режима с указанной конфигурацией
      *
-     * @param config конфигурация SDK с настройками polling режима
      * @throws IllegalArgumentException если конфигурация некорректна
      */
-    public PollingWeatherService(SdkConfig config) {
-        if (config == null) {
-            throw new IllegalArgumentException("SDK configuration cannot be null");
-        }
-
-        this.client = new OpenWeatherMapClient(config);
-        this.pollingIntervalMinutes = config.getPollingIntervalMinutes();
-        this.cache = new ConcurrentLruCache<>(10); // 10 городов по ТЗ
+    public PollingWeatherService(OpenWeatherMapClient client, int maxCacheSize, long pollingIntervalMinutes) {
+        this.client = client;
+        this.pollingIntervalMinutes = pollingIntervalMinutes;
+        this.cache = new ConcurrentLruCache<>(maxCacheSize); // 10 городов по ТЗ, должны передать в параметрах
         this.scheduler = Executors.newScheduledThreadPool(1);
 
         startPolling();
@@ -51,8 +45,8 @@ public class PollingWeatherService implements WeatherService {
     private void startPolling() {
         scheduler.scheduleAtFixedRate(
                 this::updateAllCities,
-                pollingIntervalMinutes, // initial delay
-                pollingIntervalMinutes, // period
+                pollingIntervalMinutes, // начальная задержка
+                pollingIntervalMinutes, // период
                 TimeUnit.MINUTES
         );
         log.debug("Scheduled polling task started with interval: {} minutes", pollingIntervalMinutes);
@@ -121,7 +115,7 @@ public class PollingWeatherService implements WeatherService {
     }
 
     /**
-     * Останавливает сервис polling режима и освобождает ресурсы
+     * Останавливает сервис polling режима и освобождает ресурсы.
      * Прекращает фоновое обновление данных и завершает работу планировщика.
      * Должен вызываться при завершении работы приложения.
      */

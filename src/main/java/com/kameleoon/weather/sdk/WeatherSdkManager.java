@@ -58,8 +58,7 @@ public class WeatherSdkManager {
         log.debug("Requesting SDK instance for key: {}", maskApiKey(key));
 
         return sdkInstances.computeIfAbsent(key, k -> {
-            log.info("Creating new SDK instance for API key: {}, mode: {}",
-                    maskApiKey(config.getApiKey()), config.getMode());
+            log.info("Creating new SDK instance for API key: {}, mode: {}", maskApiKey(config.getApiKey()), config.getMode());
             return new WeatherSdk(config);
         });
     }
