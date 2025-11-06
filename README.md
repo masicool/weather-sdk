@@ -212,7 +212,36 @@ org.slf4j.simpleLogger.defaultLogLevel=INFO
 
 ## Модель выходных данных
 
-SDK возвращает богатый набор метеоданных:
+SDK возвращает объект WeatherData со следующей структурой:
+```json
+{
+  "name": "London",                    // Название города
+  "datetime": 1675744800,              // Время данных (Unix timestamp)
+  "timezone": 3600,                    // Часовой пояс (секунды)
+  "visibility": 10000,                 // Видимость (метры)
+
+  "weather": {                         // Погодные условия
+    "main": "Clouds",                  // Основное описание
+    "description": "scattered clouds"  // Детальное описание
+  },
+
+  "temperature": {                     // Температура
+    "temp": 269.6,                     // Текущая температура (Kelvin)
+     "feels_like": 267.57               // Ощущаемая температура (Kelvin)
+  },
+
+  "wind": {                            // Ветер
+    "speed": 1.38                      // Скорость ветра (м/с)
+  },
+
+  "sys": {                             // Системная информация
+    "sunrise": 1675751262,             // Восход (Unix timestamp)
+    "sunset": 1675787560               // Закат (Unix timestamp)
+  }
+}
+```
+
+Пример получения данных в коде:
 
 ```java
 WeatherData data = sdk.getWeatherByCityName("Paris");
