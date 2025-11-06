@@ -1,6 +1,7 @@
 package com.kameleoon.weather.sdk;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kameleoon.weather.sdk.client.OpenWeatherMapClient;
 import com.kameleoon.weather.sdk.config.SdkConfig;
 import com.kameleoon.weather.sdk.model.SdkMode;
 import com.kameleoon.weather.sdk.model.WeatherData;
@@ -21,7 +22,7 @@ public class WeatherSdk {
     private final WeatherService weatherService;
 
     /**
-     * Создает экземпляр SDK с указанной конфигурацией
+     * Создает экземпляр SDK с указанной конфигурацией.
      * Инициализирует соответствующий сервис погоды в зависимости от выбранного режима.
      * Для on-demand режима добавляет кеширующий декоратор.
      *
@@ -46,25 +47,29 @@ public class WeatherSdk {
      * @return настроенный сервис погоды
      */
     private WeatherService createWeatherService(SdkConfig config) {
+        if (config == null) {
+            throw new IllegalArgumentException("SDK configuration cannot be null");
+        }
+
         WeatherService baseService;
+
+        // создаем клиента
+        OpenWeatherMapClient client = new OpenWeatherMapClient(config);
 
         // выбор режима запуска согласно ТЗ
         if (config.getMode() == SdkMode.POLLING) {
             log.debug("Creating PollingWeatherService");
-            baseService = new PollingWeatherService(config);
+            baseService = new PollingWeatherService(client, config.getMaxCacheSize(), config.getPollingIntervalMinutes());
         } else {
             log.debug("Creating OnDemandWeatherService");
-            baseService = new OnDemandWeatherService(config);
+            baseService = new OnDemandWeatherService(client);
         }
 
         // оборачиваем в кеширующий декоратор (для on-demand режима)
         if (config.getMode() == SdkMode.ON_DEMAND) {
             log.debug("Wrapping with CachingWeatherService: TTL={}min, maxSize={}",
                     config.getCacheTtlMinutes(), config.getMaxCacheSize());
-            return new CachingWeatherService(
-                    baseService,
-                    config.getCacheTtlMinutes(),
-                    config.getMaxCacheSize()
+            return new CachingWeatherService(baseService, config.getCacheTtlMinutes(), config.getMaxCacheSize()
             );
         }
 
@@ -114,7 +119,7 @@ public class WeatherSdk {
     }
 
     /**
-     * Преобразует объект WeatherData в JSON строку требуемого формата
+     * Преобразует объект WeatherData в JSON строку требуемого формата.
      * Использует Jackson ObjectMapper для сериализации объекта в JSON.
      * Формат выходных данных соответствует техническому заданию.
      *

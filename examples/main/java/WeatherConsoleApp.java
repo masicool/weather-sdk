@@ -6,6 +6,7 @@ import com.kameleoon.weather.sdk.model.SdkMode;
 
 import java.util.Scanner;
 
+
 public class WeatherConsoleApp {
     private static final ObjectMapper mapper = new ObjectMapper();
     private static WeatherSdk sdk;
@@ -22,17 +23,13 @@ public class WeatherConsoleApp {
             String choice = scanner.nextLine();
 
             switch (choice) {
-                case "1":
-                    getWeatherForCity();
-                    break;
-                case "2":
-                    compareCities();
-                    break;
-                case "3":
+                case "1" -> getWeatherForCity();
+                case "2" -> compareCities();
+                case "3" -> {
                     System.out.println("До свидания!");
                     return;
-                default:
-                    System.out.println("Неверный выбор");
+                }
+                default -> System.out.println("Неверный выбор");
             }
         }
     }

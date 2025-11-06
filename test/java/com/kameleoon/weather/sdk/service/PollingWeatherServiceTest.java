@@ -24,22 +24,17 @@ class PollingWeatherServiceTest {
     private OpenWeatherMapClient mockWeatherClient;
 
     private PollingWeatherService pollingService;
-    private SdkConfig config;
 
     @BeforeEach
     void setUp() {
-        config = SdkConfig.builder("test-api-key")
+        // 1 минута для тестов
+        SdkConfig config = SdkConfig.builder("test-api-key")
                 .pollingIntervalMinutes(1) // 1 минута для тестов
                 .maxCacheSize(3)
                 .build();
 
-        pollingService = new PollingWeatherService(config) {
-            // Переопределяем создание клиента для использования mock
-            @Override
-            protected OpenWeatherMapClient createWeatherClient(SdkConfig config) {
-                return mockWeatherClient;
-            }
-        };
+        OpenWeatherMapClient mockClient = mock(OpenWeatherMapClient.class);
+        pollingService = new PollingWeatherService(mockClient, config.getMaxCacheSize(), config.getPollingIntervalMinutes());
     }
 
     @AfterEach
@@ -94,7 +89,7 @@ class PollingWeatherServiceTest {
     }
 
     @Test
-    void shouldUpdateCitiesInBackground() throws WeatherSdkException, InterruptedException {
+    void shouldUpdateCitiesInBackground() throws WeatherSdkException {
         // Arrange
         String cityName = "Moscow";
         WeatherData initialData = createTestWeatherData(cityName, 20.0);
@@ -174,12 +169,9 @@ class PollingWeatherServiceTest {
                 .maxCacheSize(2)
                 .build();
 
-        PollingWeatherService smallCacheService = new PollingWeatherService(smallCacheConfig) {
-            @Override
-            protected OpenWeatherMapClient createWeatherClient(SdkConfig config) {
-                return mockWeatherClient;
-            }
-        };
+        OpenWeatherMapClient mockClient = mock(OpenWeatherMapClient.class);
+        PollingWeatherService smallCacheService = new PollingWeatherService(mockClient,
+                smallCacheConfig.getMaxCacheSize(), smallCacheConfig.getPollingIntervalMinutes());
 
         WeatherData data1 = createTestWeatherData("Moscow");
         WeatherData data2 = createTestWeatherData("London");

@@ -1,7 +1,6 @@
 package com.kameleoon.weather.sdk.service;
 
 import com.kameleoon.weather.sdk.client.OpenWeatherMapClient;
-import com.kameleoon.weather.sdk.config.SdkConfig;
 import com.kameleoon.weather.sdk.exception.WeatherSdkException;
 import com.kameleoon.weather.sdk.model.WeatherData;
 
@@ -17,18 +16,14 @@ public class OnDemandWeatherService implements WeatherService {
     /**
      * Создает сервис on-demand режима с указанной конфигурацией
      *
-     * @param config конфигурация SDK с настройками подключения к API
      * @throws IllegalArgumentException если конфигурация некорректна
      */
-    public OnDemandWeatherService(SdkConfig config) {
-        if (config == null) {
-            throw new IllegalArgumentException("SDK configuration cannot be null");
-        }
-        this.client = new OpenWeatherMapClient(config);
+    public OnDemandWeatherService(OpenWeatherMapClient client) {
+        this.client = client;
     }
 
     /**
-     * Получает данные о погоде для указанного города
+     * Получает данные о погоде для указанного города.
      * Выполняет непосредственный запрос к API OpenWeatherMap без использования кеша.
      * Гарантирует получение самых актуальных данных, но может быть медленнее
      * из-за сетевых задержек и ограничений API.
