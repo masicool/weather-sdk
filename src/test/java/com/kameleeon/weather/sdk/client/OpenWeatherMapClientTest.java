@@ -1,5 +1,6 @@
-package com.kameleoon.weather.sdk.client;
+package com.kameleeon.weather.sdk.client;
 
+import com.kameleoon.weather.sdk.client.OpenWeatherMapClient;
 import com.kameleoon.weather.sdk.config.SdkConfig;
 import com.kameleoon.weather.sdk.exception.ApiException;
 import com.kameleoon.weather.sdk.exception.WeatherSdkException;

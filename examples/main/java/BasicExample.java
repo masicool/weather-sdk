@@ -14,7 +14,7 @@ public class BasicExample {
         WeatherSdk sdk = null;
         try {
             // указываем только API ключ
-            sdk = WeatherSdkManager.getInstance().getSdk("a28a880098176a505a802319e9e6ee66");
+            sdk = WeatherSdkManager.getInstance().getSdk("your-api-key");
 
             // первый запрос - идет в API
             String weather = sdk.getWeather("Moscow");
@@ -30,7 +30,7 @@ public class BasicExample {
         } finally {
             // освобождаем ресурсы
             if (sdk != null) {
-                WeatherSdkManager.getInstance().destroySdk("a28a880098176a505a802319e9e6ee66", SdkMode.ON_DEMAND);
+                WeatherSdkManager.getInstance().destroySdk("your-api-key", SdkMode.ON_DEMAND);
             }
         }
     }

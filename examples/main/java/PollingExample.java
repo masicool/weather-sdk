@@ -8,7 +8,7 @@ import com.kameleoon.weather.sdk.model.SdkMode;
  */
 public class PollingExample {
     public static void main(String[] args) {
-        SdkConfig config = SdkConfig.builder("a28a880098176a505a802319e9e6ee66")
+        SdkConfig config = SdkConfig.builder("your-api-key")
                 .mode(SdkMode.POLLING)
                 .pollingIntervalMinutes(5)
                 .build();

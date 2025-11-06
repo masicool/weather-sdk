@@ -9,7 +9,7 @@ import com.kameleoon.weather.sdk.model.SdkMode;
 public class ErrorHandlingExample {
     public static void main(String[] args) {
         WeatherSdkManager manager = WeatherSdkManager.getInstance();
-        WeatherSdk sdk = manager.getSdk("a28a880098176a505a802319e9e6ee66", SdkMode.ON_DEMAND);
+        WeatherSdk sdk = manager.getSdk("your-api-key", SdkMode.ON_DEMAND);
 
         // тестируем различные сценарии
         String[] testCases = {
@@ -49,6 +49,6 @@ public class ErrorHandlingExample {
             System.out.println("---");
         }
 
-        manager.destroySdk("a28a880098176a505a802319e9e6ee66", SdkMode.ON_DEMAND);
+        manager.destroySdk("your-api-key", SdkMode.ON_DEMAND);
     }
 }

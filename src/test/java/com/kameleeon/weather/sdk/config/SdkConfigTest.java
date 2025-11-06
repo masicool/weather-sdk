@@ -1,5 +1,6 @@
-package com.kameleoon.weather.sdk.config;
+package com.kameleeon.weather.sdk.config;
 
+import com.kameleoon.weather.sdk.config.SdkConfig;
 import com.kameleoon.weather.sdk.model.SdkMode;
 import org.junit.jupiter.api.Test;
 

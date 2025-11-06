@@ -14,7 +14,7 @@ public class CustomConfigExample {
         System.out.println("--- Кастомная конфигурация через Builder ---");
 
         // создаем кастомную конфигурацию
-        SdkConfig config = SdkConfig.builder("a28a880098176a505a802319e9e6ee66")
+        SdkConfig config = SdkConfig.builder("your-api-key")
                 .mode(SdkMode.ON_DEMAND)
                 .cacheTtlMinutes(15)           // кеш на 15 минут
                 .maxCacheSize(20)              // до 20 городов в кеше

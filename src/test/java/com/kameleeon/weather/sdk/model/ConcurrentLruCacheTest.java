@@ -1,5 +1,6 @@
-package com.kameleoon.weather.sdk.model;
+package com.kameleeon.weather.sdk.model;
 
+import com.kameleoon.weather.sdk.model.ConcurrentLruCache;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

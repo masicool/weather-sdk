@@ -36,11 +36,11 @@ public class WeatherConsoleApp {
 
     private static void initializeSdk() {
         WeatherSdkManager manager = WeatherSdkManager.getInstance();
-        sdk = manager.getSdk("a28a880098176a505a802319e9e6ee66", SdkMode.ON_DEMAND);
+        sdk = manager.getSdk("your-api-key", SdkMode.ON_DEMAND);
 
         // добавляем shutdown hook для корректного завершения
         Runtime.getRuntime().addShutdownHook(new Thread(() ->
-                manager.destroySdk("a28a880098176a505a802319e9e6ee66", SdkMode.ON_DEMAND)));
+                manager.destroySdk("your-api-key", SdkMode.ON_DEMAND)));
     }
 
     private static void printMenu() {

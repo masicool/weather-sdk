@@ -1,7 +1,9 @@
-package com.kameleoon.weather.sdk.service;
+package com.kameleeon.weather.sdk.service;
 
 import com.kameleoon.weather.sdk.exception.WeatherSdkException;
 import com.kameleoon.weather.sdk.model.WeatherData;
+import com.kameleoon.weather.sdk.service.CachingWeatherService;
+import com.kameleoon.weather.sdk.service.WeatherService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -1,9 +1,10 @@
-package com.kameleoon.weather.sdk.service;
+package com.kameleeon.weather.sdk.service;
 
 import com.kameleoon.weather.sdk.client.OpenWeatherMapClient;
 import com.kameleoon.weather.sdk.config.SdkConfig;
 import com.kameleoon.weather.sdk.exception.WeatherSdkException;
 import com.kameleoon.weather.sdk.model.WeatherData;
+import com.kameleoon.weather.sdk.service.PollingWeatherService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,8 +34,9 @@ class PollingWeatherServiceTest {
                 .maxCacheSize(3)
                 .build();
 
-        OpenWeatherMapClient mockClient = mock(OpenWeatherMapClient.class);
-        pollingService = new PollingWeatherService(mockClient, config.getMaxCacheSize(), config.getPollingIntervalMinutes());
+        //OpenWeatherMapClient mockClient = mock(OpenWeatherMapClient.class);
+        //pollingService = new PollingWeatherService(mockClient, config.getMaxCacheSize(), config.getPollingIntervalMinutes());
+        pollingService = new PollingWeatherService(mockWeatherClient, config.getMaxCacheSize(), config.getPollingIntervalMinutes());
     }
 
     @AfterEach
@@ -69,12 +71,10 @@ class PollingWeatherServiceTest {
         when(mockWeatherClient.getWeatherByCityName("London")).thenReturn(londonData);
         when(mockWeatherClient.getWeatherByCityName("Paris")).thenReturn(parisData);
 
-        // Act
         WeatherData result1 = pollingService.getWeather("Moscow");
         WeatherData result2 = pollingService.getWeather("London");
         WeatherData result3 = pollingService.getWeather("Paris");
 
-        // Assert
         assertEquals(moscowData, result1);
         assertEquals(londonData, result2);
         assertEquals(parisData, result3);
@@ -86,8 +86,7 @@ class PollingWeatherServiceTest {
 
     @Test
     void shouldUpdateCitiesInBackground() throws WeatherSdkException {
-        // Arrange
-        String cityName = "Moscow";
+        String cityName = "Moscow".toLowerCase();
         WeatherData initialData = createTestWeatherData(cityName, 20.0);
         WeatherData updatedData = createTestWeatherData(cityName, 25.0);
 
@@ -95,16 +94,12 @@ class PollingWeatherServiceTest {
                 .thenReturn(initialData)
                 .thenReturn(updatedData);
 
-        // Act - первый вызов
         WeatherData firstResult = pollingService.getWeather(cityName);
 
-        // Имитируем фоновое обновление
         pollingService.updateAllCities();
 
-        // Второй вызов должен вернуть обновленные данные
         WeatherData secondResult = pollingService.getWeather(cityName);
 
-        // Assert
         assertEquals(initialData, firstResult);
         assertEquals(updatedData, secondResult);
         verify(mockWeatherClient, times(2)).getWeatherByCityName(cityName);
@@ -112,41 +107,37 @@ class PollingWeatherServiceTest {
 
     @Test
     void shouldHandleClientExceptionsGracefully() throws WeatherSdkException {
-        // Arrange
-        String cityName = "Moscow";
+        String cityName = "Moscow".toLowerCase();
         WeatherData data = createTestWeatherData(cityName);
 
         when(mockWeatherClient.getWeatherByCityName(cityName))
                 .thenReturn(data)
                 .thenThrow(new WeatherSdkException("API error"));
 
-        // Act - первый успешный вызов
+        // первый успешный вызов
         WeatherData firstResult = pollingService.getWeather(cityName);
 
-        // Второй вызов при ошибке обновления - должен вернуть старые данные из кеша
-        pollingService.updateAllCities(); // Это вызовет исключение, но не должно сломать сервис
+        // второй вызов при ошибке обновления - должен вернуть старые данные из кеша
+        pollingService.updateAllCities(); // это вызовет исключение, но не должно сломать сервис
         WeatherData secondResult = pollingService.getWeather(cityName);
 
-        // Assert
         assertEquals(data, firstResult);
         assertEquals(data, secondResult);
-        // Клиент должен быть вызван дважды (второй раз с ошибкой)
+        // клиент должен быть вызван дважды (второй раз с ошибкой)
         verify(mockWeatherClient, times(2)).getWeatherByCityName(cityName);
     }
 
     @Test
     void shouldShutdownProperly() throws WeatherSdkException {
-        // Arrange
         String cityName = "Moscow";
         WeatherData data = createTestWeatherData(cityName);
 
         when(mockWeatherClient.getWeatherByCityName(cityName)).thenReturn(data);
 
-        // Act
         pollingService.getWeather(cityName);
         pollingService.shutdown();
 
-        // Assert - сервис должен быть остановлен, повторный shutdown не должен ломать
+        // сервис должен быть остановлен, повторный shutdown не должен ломать
         assertDoesNotThrow(() -> pollingService.shutdown());
     }
 
@@ -159,7 +150,7 @@ class PollingWeatherServiceTest {
 
     @Test
     void shouldLimitCacheSizeAccordingToConfig() throws WeatherSdkException {
-        // Arrange - конфиг с размером кеша 2
+        // конфиг с размером кеша 2
         SdkConfig smallCacheConfig = SdkConfig.builder("test-key")
                 .pollingIntervalMinutes(1)
                 .maxCacheSize(2)
@@ -169,22 +160,22 @@ class PollingWeatherServiceTest {
         PollingWeatherService smallCacheService = new PollingWeatherService(mockClient,
                 smallCacheConfig.getMaxCacheSize(), smallCacheConfig.getPollingIntervalMinutes());
 
-        WeatherData data1 = createTestWeatherData("Moscow");
-        WeatherData data2 = createTestWeatherData("London");
-        WeatherData data3 = createTestWeatherData("Paris");
+        WeatherData data1 = createTestWeatherData("Moscow".toLowerCase());
+        WeatherData data2 = createTestWeatherData("London".toLowerCase());
+        WeatherData data3 = createTestWeatherData("Paris".toLowerCase());
 
-        when(mockWeatherClient.getWeatherByCityName(anyString()))
+        when(mockClient.getWeatherByCityName(anyString()))
                 .thenReturn(data1)
                 .thenReturn(data2)
                 .thenReturn(data3);
 
         try {
-            // Act - запрашиваем 3 города при лимите 2
+            // запрашиваем 3 города при лимите 2
             smallCacheService.getWeather("Moscow");
             smallCacheService.getWeather("London");
             smallCacheService.getWeather("Paris"); // Должен вытеснить самый старый
 
-            // Assert - все города должны быть доступны (кеш сам управляет размером)
+            // все города должны быть доступны (кеш сам управляет размером)
             assertNotNull(smallCacheService.getWeather("Moscow"));
             assertNotNull(smallCacheService.getWeather("London"));
             assertNotNull(smallCacheService.getWeather("Paris"));

@@ -78,10 +78,12 @@ public class PollingWeatherService implements WeatherService {
             return cachedData;
         }
 
-        // если города нет в кеше - получаем данные и они автоматически попадут в отслеживаемые
-        // через LRU механизм при следующем фоновом обновлении
+        // если города нет в кеше - получаем данные
         log.info("City not in polling cache, fetching fresh data: {}", cityName);
         WeatherData freshData = client.getWeatherByCityName(cityName);
+
+        // добавляем в кэш
+        cache.put(normalizedCityName, freshData);
 
         // данные будут добавлены в кеш при следующем фоновом обновлении
         return freshData;
