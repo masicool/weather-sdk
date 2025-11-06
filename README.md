@@ -32,7 +32,7 @@ weather-sdk/
 
 ## Требования
 
-- Java 17 или выше
+- Java 21 или выше
 - Maven 3.6 или выше
 - API ключ от OpenWeatherMap
 
